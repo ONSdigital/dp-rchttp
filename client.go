@@ -19,12 +19,10 @@ import (
 // Client is an extension of the net/http client with ability to add
 // timeouts, exponential backoff and context-based cancellation
 type Client struct {
-	MaxRetries           int
-	ExponentialBackoff   bool
-	RetryTime            time.Duration
-	HTTPClient           *http.Client
-	AuthToken            string
-	DownloadServiceToken string
+	MaxRetries         int
+	ExponentialBackoff bool
+	RetryTime          time.Duration
+	HTTPClient         *http.Client
 }
 
 // DefaultClient is a go-ns specific http client with sensible timeouts,
@@ -47,47 +45,39 @@ var DefaultClient = &Client{
 	},
 }
 
+// RCHTTPClienter provides an interface for methods on an HTTP Client
+type RCHTTPClienter interface {
+	SetTimeout(timeout time.Duration)
+	SetMaxRetries(int)
+	GetMaxRetries() int
+
+	Get(ctx context.Context, url string) (*http.Response, error)
+	Head(ctx context.Context, url string) (*http.Response, error)
+	Post(ctx context.Context, url string, contentType string, body io.Reader) (*http.Response, error)
+	Put(ctx context.Context, url string, contentType string, body io.Reader) (*http.Response, error)
+	PostForm(ctx context.Context, uri string, data url.Values) (*http.Response, error)
+
+	Do(ctx context.Context, req *http.Request) (*http.Response, error)
+}
+
 // NewClient returns a copy of DefaultClient
-func NewClient() common.RCHTTPClienter {
+func NewClient() RCHTTPClienter {
 	newClient := *DefaultClient
 	return &newClient
 }
 
 // ClientWithTimeout facilitates creating a client and setting request timeout
-func ClientWithTimeout(c common.RCHTTPClienter, timeout time.Duration) common.RCHTTPClienter {
+func ClientWithTimeout(c RCHTTPClienter, timeout time.Duration) RCHTTPClienter {
 	if c == nil {
 		c = NewClient()
 	}
 	c.SetTimeout(timeout)
 	return c
-} // ClientWithTimeout facilitates creating a client and setting request timeout
+}
 
+// SetTimeout sets HTTP request timeout
 func (c *Client) SetTimeout(timeout time.Duration) {
 	c.HTTPClient.Timeout = timeout
-}
-
-// ClientWithServiceToken facilitates creating a client and setting service auth
-func ClientWithServiceToken(c common.RCHTTPClienter, authToken string) common.RCHTTPClienter {
-	if c == nil {
-		c = NewClient()
-	}
-	c.SetAuthToken(authToken)
-	return c
-}
-func (c *Client) SetAuthToken(authToken string) {
-	c.AuthToken = authToken
-}
-
-// ClientWithDownloadServiceToken facilitates creating a client and setting service auth
-func ClientWithDownloadServiceToken(c common.RCHTTPClienter, token string) common.RCHTTPClienter {
-	if c == nil {
-		c = NewClient()
-	}
-	c.SetDownloadServiceToken(token)
-	return c
-}
-func (c *Client) SetDownloadServiceToken(token string) {
-	c.DownloadServiceToken = token
 }
 
 func (c *Client) GetMaxRetries() int {
@@ -99,28 +89,6 @@ func (c *Client) SetMaxRetries(maxRetries int) {
 
 // Do calls ctxhttp.Do with the addition of exponential backoff
 func (c *Client) Do(ctx context.Context, req *http.Request) (*http.Response, error) {
-
-	if len(c.AuthToken) > 0 {
-		// only add this header if not already set (e.g. for authClient)
-		if len(req.Header.Get(common.AuthHeaderKey)) == 0 {
-			common.AddServiceTokenHeader(req, c.AuthToken)
-		}
-	}
-	if len(c.DownloadServiceToken) > 0 {
-		// only add this header if not already set
-		if len(req.Header.Get(common.DownloadServiceHeaderKey)) == 0 {
-			common.AddDownloadServiceTokenHeader(req, c.DownloadServiceToken)
-		}
-	}
-	if common.IsUserPresent(ctx) {
-		// only add this header if not already set
-		if len(req.Header.Get(common.UserHeaderKey)) == 0 {
-			common.AddUserHeader(req, common.User(ctx))
-		}
-	}
-	if common.IsFlorenceIdentityPresent(ctx) {
-		common.SetFlorenceHeader(ctx, req)
-	}
 
 	// get any existing correlation-id (might be "id1,id2"), append a new one, add to headers
 	upstreamCorrelationIds := common.GetRequestId(ctx)
