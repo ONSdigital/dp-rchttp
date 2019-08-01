@@ -1,7 +1,6 @@
 package rchttp
 
 import (
-	"errors"
 	"io"
 	"math"
 	"math/rand"
@@ -103,8 +102,7 @@ func (c *Client) Do(ctx context.Context, req *http.Request) (*http.Response, err
 	}
 	common.AddRequestIdHeader(req, upstreamCorrelationIds+common.NewRequestID(addedIDLen))
 
-	doer := func(args ...interface{}) (*http.Response, error) {
-		req := args[2].(*http.Request)
+	doer := func(ctx context.Context, client *http.Client, req *http.Request) (*http.Response, error) {
 		if req.ContentLength > 0 {
 			var err error
 			req.Body, err = req.GetBody()
@@ -112,24 +110,24 @@ func (c *Client) Do(ctx context.Context, req *http.Request) (*http.Response, err
 				return nil, err
 			}
 		}
-		return ctxhttp.Do(args[0].(context.Context), args[1].(*http.Client), req)
+		return ctxhttp.Do(ctx, client, req)
 	}
 
 	resp, err := doer(ctx, c.HTTPClient, req)
 	if err != nil {
 		if c.ExponentialBackoff {
-			return c.backoff(doer, err, ctx, c.HTTPClient, req)
+			return c.backoff(ctx, doer, err, c.HTTPClient, req)
 		}
 		return nil, err
 	}
 
 	if c.ExponentialBackoff {
 		if resp.StatusCode >= http.StatusInternalServerError {
-			return c.backoff(doer, err, ctx, c.HTTPClient, req, errors.New("Bad server status"))
+			return c.backoff(ctx, doer, err, c.HTTPClient, req)
 		}
 
 		if resp.StatusCode == http.StatusConflict {
-			return c.backoff(doer, err, ctx, c.HTTPClient, req, errors.New("Conflict - request could not be completed due to a conflict with the current state of the target resource"))
+			return c.backoff(ctx, doer, err, c.HTTPClient, req)
 		}
 	}
 
@@ -183,23 +181,23 @@ func (c *Client) PostForm(ctx context.Context, uri string, data url.Values) (*ht
 	return c.Post(ctx, uri, "application/x-www-form-urlencoded", strings.NewReader(data.Encode()))
 }
 
-func (c *Client) backoff(f func(...interface{}) (*http.Response, error), retryErr error, args ...interface{}) (resp *http.Response, err error) {
+func (c *Client) backoff(ctx context.Context, doer func(context.Context, *http.Client, *http.Request) (*http.Response, error), retryErr error, client *http.Client, req *http.Request) (resp *http.Response, err error) {
 	if c.GetMaxRetries() < 1 {
 		return nil, retryErr
 	}
 	for attempt := 1; attempt <= c.GetMaxRetries(); attempt++ {
 		// ensure that the context is not cancelled before iterating
-		if args[0].(context.Context).Err() != nil {
-			err = args[0].(context.Context).Err()
+		if ctx.Err() != nil {
+			err = ctx.Err()
 			return
 		}
 
 		time.Sleep(getSleepTime(attempt, c.RetryTime))
 
-		resp, err = f(args...)
+		resp, err = doer(ctx, client, req)
 		// prioritise any context cancellation
-		if args[0].(context.Context).Err() != nil {
-			err = args[0].(context.Context).Err()
+		if ctx.Err() != nil {
+			err = ctx.Err()
 			return
 		}
 		if err == nil && resp.StatusCode < http.StatusInternalServerError && resp.StatusCode != http.StatusConflict {
