@@ -44,8 +44,8 @@ var DefaultClient = &Client{
 	},
 }
 
-// RCHTTPClienter provides an interface for methods on an HTTP Client
-type RCHTTPClienter interface {
+// Clienter provides an interface for methods on an HTTP Client
+type Clienter interface {
 	SetTimeout(timeout time.Duration)
 	SetMaxRetries(int)
 	GetMaxRetries() int
@@ -60,13 +60,13 @@ type RCHTTPClienter interface {
 }
 
 // NewClient returns a copy of DefaultClient
-func NewClient() RCHTTPClienter {
+func NewClient() Clienter {
 	newClient := *DefaultClient
 	return &newClient
 }
 
 // ClientWithTimeout facilitates creating a client and setting request timeout
-func ClientWithTimeout(c RCHTTPClienter, timeout time.Duration) RCHTTPClienter {
+func ClientWithTimeout(c Clienter, timeout time.Duration) Clienter {
 	if c == nil {
 		c = NewClient()
 	}
