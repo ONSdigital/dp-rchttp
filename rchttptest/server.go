@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -38,20 +39,25 @@ type RequestTester struct {
 
 func NewTestServer() *TestServer {
 	callCount := 0
+	var mu sync.Mutex
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
 		callCount++
+		mu.Unlock()
 		contentType := r.Header.Get(ContentTypeHeader)
 		b := GetBody(r.Body)
 		headers := make(map[string][]string)
 		for h, v := range r.Header {
 			headers[h] = v
 		}
+		mu.Lock()
 		jsonResponse, err := json.Marshal(Responder{
 			Method:    r.Method,
 			CallCount: callCount,
 			Body:      string(b),
 			Headers:   headers,
 		})
+		mu.Unlock()
 		if err != nil {
 			convertErrorToOutput(w, contentType, err)
 			return
@@ -70,7 +76,10 @@ func NewTestServer() *TestServer {
 					convertErrorToOutput(w, contentType, err)
 					return
 				}
-				if reqTest.DelayOnCall == callCount {
+				mu.Lock()
+				callCountNow := callCount
+				mu.Unlock()
+				if reqTest.DelayOnCall == callCountNow {
 					time.Sleep(delayDuration)
 				}
 			}
