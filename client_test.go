@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ONSdigital/dp-rchttp/rchttptest"
 	"github.com/ONSdigital/go-ns/common"
-	"github.com/ONSdigital/go-ns/rchttp/rchttptest"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
