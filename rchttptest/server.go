@@ -14,7 +14,6 @@ import (
 const (
 	JsonContentType   = "application/json"
 	FormEncodedType   = "application/x-www-form-urlencoded"
-	ServiceToken      = "APIAmWhoAPIAm"
 	UserId            = "User@Test"
 	ContentTypeHeader = "Content-Type"
 )
