@@ -90,17 +90,17 @@ func (c *Client) SetMaxRetries(maxRetries int) {
 func (c *Client) Do(ctx context.Context, req *http.Request) (*http.Response, error) {
 
 	// get any existing correlation-id (might be "id1,id2"), append a new one, add to headers
-	upstreamCorrelationIds := common.GetRequestId(ctx)
+	upstreamCorrelationIDs := common.GetRequestId(ctx)
 	addedIDLen := 20
-	if upstreamCorrelationIds != "" {
+	if upstreamCorrelationIDs != "" {
 		// get length of (first of) IDs (e.g. "id1" is 3), new ID will be half that size
-		addedIDLen = len(upstreamCorrelationIds) / 2
-		if commaPosition := strings.Index(upstreamCorrelationIds, ","); commaPosition > 1 {
+		addedIDLen = len(upstreamCorrelationIDs) / 2
+		if commaPosition := strings.Index(upstreamCorrelationIDs, ","); commaPosition > 1 {
 			addedIDLen = commaPosition / 2
 		}
-		upstreamCorrelationIds += ","
+		upstreamCorrelationIDs += ","
 	}
-	common.AddRequestIdHeader(req, upstreamCorrelationIds+common.NewRequestID(addedIDLen))
+	common.AddRequestIdHeader(req, upstreamCorrelationIDs+common.NewRequestID(addedIDLen))
 
 	doer := func(ctx context.Context, client *http.Client, req *http.Request) (*http.Response, error) {
 		if req.ContentLength > 0 {
