@@ -148,12 +148,12 @@ func TestClientNoRetries(t *testing.T) {
 	})
 }
 
-func TestClientAddsRequestIdHeader(t *testing.T) {
+func TestClientAddsRequestIDHeader(t *testing.T) {
 	ts := rchttptest.NewTestServer()
 	defer ts.Close()
 	expectedCallCount := 0
 
-	Convey("Given an rchttp client with no correlation id in context", t, func() {
+	Convey("Given an rchttp client with no correlation ID in context", t, func() {
 		// throw in a check for wrapped client instantiation
 		httpClient := ClientWithTimeout(nil, 5*time.Second)
 
@@ -178,19 +178,19 @@ func TestClientAddsRequestIdHeader(t *testing.T) {
 	})
 }
 
-func TestClientAppendsRequestIdHeader(t *testing.T) {
+func TestClientAppendsRequestIDHeader(t *testing.T) {
 	ts := rchttptest.NewTestServer()
 	defer ts.Close()
 	expectedCallCount := 0
 
-	Convey("Given an rchttp client with existing correlation id in context", t, func() {
-		upstreamRequestId := "call1234"
+	Convey("Given an rchttp client with existing correlation ID in context", t, func() {
+		upstreamRequestID := "call1234"
 		// throw in a check for wrapped client instantiation
 		httpClient := ClientWithTimeout(nil, 5*time.Second)
 
 		Convey("When Post() is called on a URL", func() {
 			expectedCallCount++
-			resp, err := httpClient.Post(common.WithRequestId(context.Background(), upstreamRequestId), ts.URL, rchttptest.JsonContentType, strings.NewReader(`{}`))
+			resp, err := httpClient.Post(common.WithRequestId(context.Background(), upstreamRequestID), ts.URL, rchttptest.JsonContentType, strings.NewReader(`{}`))
 			So(resp, ShouldNotBeNil)
 			So(err, ShouldBeNil)
 
@@ -202,8 +202,8 @@ func TestClientAppendsRequestIdHeader(t *testing.T) {
 				So(call.Method, ShouldEqual, "POST")
 				So(call.Error, ShouldEqual, "")
 				So(len(call.Headers[common.RequestHeaderKey]), ShouldEqual, 1)
-				So(call.Headers[common.RequestHeaderKey][0], ShouldStartWith, upstreamRequestId+",")
-				So(len(call.Headers[common.RequestHeaderKey][0]), ShouldBeGreaterThan, len(upstreamRequestId)*3/2)
+				So(call.Headers[common.RequestHeaderKey][0], ShouldStartWith, upstreamRequestID+",")
+				So(len(call.Headers[common.RequestHeaderKey][0]), ShouldBeGreaterThan, len(upstreamRequestID)*3/2)
 			})
 		})
 	})
