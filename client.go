@@ -1,5 +1,7 @@
 package rchttp
 
+//go:generate moq -out mock_client.go . Clienter
+
 import (
 	"io"
 	"math"
