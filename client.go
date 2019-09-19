@@ -91,6 +91,15 @@ func (c *Client) SetMaxRetries(maxRetries int) {
 // Do calls ctxhttp.Do with the addition of exponential backoff
 func (c *Client) Do(ctx context.Context, req *http.Request) (*http.Response, error) {
 
+	// TODO: Remove this once user token (Florence token) is propegated throughout apps
+	// Used for audit purposes
+	if common.IsUserPresent(ctx) {
+		// only add this header if not already set
+		if len(req.Header.Get(common.UserHeaderKey)) == 0 {
+			common.AddUserHeader(req, common.User(ctx))
+		}
+	}
+
 	// get any existing correlation-id (might be "id1,id2"), append a new one, add to headers
 	upstreamCorrelationIDs := common.GetRequestId(ctx)
 	addedIDLen := 20
