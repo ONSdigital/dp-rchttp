@@ -107,8 +107,8 @@ func TestClientDoesRetry(t *testing.T) {
 		httpClient := ClientWithTimeout(nil, 100*time.Millisecond)
 
 		Convey("When Post() is called on a URL with a delay on the first response", func() {
-			/// XXX this is two for the retry due to the delayed first POST
 			delayByOneSecondOnNext := delayByOneSecondOn(expectedCallCount + 1)
+			/// XXX this is two for the retry due to the delayed response to first POST
 			expectedCallCount += 2
 			resp, err := httpClient.Post(context.Background(), ts.URL, rchttptest.JsonContentType, strings.NewReader(delayByOneSecondOnNext))
 			So(resp, ShouldNotBeNil)
@@ -118,11 +118,68 @@ func TestClientDoesRetry(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			Convey("Then the server sees two POST calls", func() {
+				So(ts.GetCalls(0), ShouldEqual, expectedCallCount)
 				So(call.CallCount, ShouldEqual, expectedCallCount)
 				So(call.Method, ShouldEqual, "POST")
 				So(call.Body, ShouldEqual, delayByOneSecondOnNext)
 				So(call.Error, ShouldEqual, "")
 				So(resp.Header.Get(rchttptest.ContentTypeHeader), ShouldContainSubstring, "text/plain")
+			})
+		})
+	})
+}
+
+func TestClientDoesRetryAndContextCancellation(t *testing.T) {
+	ts := rchttptest.NewTestServer(200)
+	defer ts.Close()
+	expectedCallCount := 0
+
+	Convey("Given an rchttp client with small client timeout", t, func() {
+		// force client to abandon requests before the requested one second delay on the (next) server response
+		httpClient := ClientWithTimeout(nil, 500*time.Millisecond)
+		Convey("When Post() is called on a URL with a delay on the first response", func() {
+			delayByOneSecondOnNext := delayByOneSecondOn(expectedCallCount + 1)
+			expectedCallCount++
+
+			ctx, cancel := context.WithCancel(context.Background())
+			go func() {
+				time.Sleep(100 * time.Millisecond)
+				cancel()
+			}()
+
+			resp, err := httpClient.Post(ctx, ts.URL, rchttptest.JsonContentType, strings.NewReader(delayByOneSecondOnNext))
+			So(err, ShouldNotBeNil)
+			So(err.Error(), ShouldEqual, "context canceled")
+			So(resp, ShouldBeNil)
+
+			Convey("Then the server sees two POST calls", func() {
+				So(ts.GetCalls(0), ShouldEqual, expectedCallCount)
+			})
+		})
+	})
+}
+
+func TestClientDoesRetryAndContextTimeout(t *testing.T) {
+	ts := rchttptest.NewTestServer(200)
+	defer ts.Close()
+	expectedCallCount := 0
+
+	Convey("Given an rchttp client with small client timeout", t, func() {
+		// force client to abandon requests before the requested one second delay on the (next) server response
+		httpClient := ClientWithTimeout(nil, 500*time.Millisecond)
+		Convey("When Post() is called on a URL with a delay on the first response", func() {
+			delayByOneSecondOnNext := delayByOneSecondOn(expectedCallCount + 1)
+			expectedCallCount++
+
+			ctx, _ := context.WithTimeout(context.Background(), time.Duration(200*time.Millisecond))
+
+			resp, err := httpClient.Post(ctx, ts.URL, rchttptest.JsonContentType, strings.NewReader(delayByOneSecondOnNext))
+			So(err, ShouldNotBeNil)
+			So(err.Error(), ShouldEqual, "context deadline exceeded")
+			So(resp, ShouldBeNil)
+
+			Convey("Then the server sees two POST calls", func() {
+				So(ts.GetCalls(0), ShouldEqual, expectedCallCount)
 			})
 		})
 	})

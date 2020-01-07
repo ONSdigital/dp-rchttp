@@ -126,26 +126,21 @@ func (c *Client) Do(ctx context.Context, req *http.Request) (*http.Response, err
 	}
 
 	resp, err := doer(ctx, c.HTTPClient, req)
-	if err != nil {
-
-		if c.MaxRetries > 0 {
-			return c.backoff(ctx, doer, err, c.HTTPClient, req)
-		}
-
-		return resp, err
-	}
-
-	if c.MaxRetries > 0 {
-		if resp.StatusCode >= http.StatusInternalServerError {
-			return c.backoff(ctx, doer, err, c.HTTPClient, req)
-		}
-
-		if resp.StatusCode == http.StatusConflict {
-			return c.backoff(ctx, doer, err, c.HTTPClient, req)
-		}
+	if c.GetMaxRetries() > 0 && wantRetry(err, resp) {
+		return c.backoff(ctx, doer, c.HTTPClient, req)
 	}
 
 	return resp, err
+}
+
+func wantRetry(err error, resp *http.Response) bool {
+	if err != nil {
+		return true
+	}
+	if resp.StatusCode >= http.StatusInternalServerError || resp.StatusCode == http.StatusConflict {
+		return true
+	}
+	return false
 }
 
 // Get calls Do with a GET.
@@ -195,16 +190,26 @@ func (c *Client) PostForm(ctx context.Context, uri string, data url.Values) (*ht
 	return c.Post(ctx, uri, "application/x-www-form-urlencoded", strings.NewReader(data.Encode()))
 }
 
-func (c *Client) backoff(ctx context.Context, doer func(context.Context, *http.Client, *http.Request) (*http.Response, error), retryErr error, client *http.Client, req *http.Request) (resp *http.Response, err error) {
+func (c *Client) backoff(
+	ctx context.Context,
+	doer func(context.Context, *http.Client, *http.Request) (*http.Response, error),
+	client *http.Client,
+	req *http.Request,
+) (resp *http.Response, err error) {
 
 	for retries := 1; retries <= c.GetMaxRetries(); retries++ {
-		// ensure that the context is not cancelled before iterating
-		if ctx.Err() != nil {
+		pingChan := make(chan struct{}, 0)
+		go func() {
+			time.Sleep(getSleepTime(retries, c.RetryTime))
+			close(pingChan)
+		}()
+		// check for first of: context cancellation or sleep ends
+		select {
+		case <-pingChan:
+		case <-ctx.Done():
 			err = ctx.Err()
 			return
 		}
-
-		time.Sleep(getSleepTime(retries, c.RetryTime))
 
 		resp, err = doer(ctx, client, req)
 		// prioritise any context cancellation
@@ -212,7 +217,7 @@ func (c *Client) backoff(ctx context.Context, doer func(context.Context, *http.C
 			err = ctx.Err()
 			return
 		}
-		if err == nil && resp.StatusCode < http.StatusInternalServerError && resp.StatusCode != http.StatusConflict {
+		if !wantRetry(err, resp) {
 			return
 		}
 	}
