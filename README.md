@@ -40,8 +40,7 @@ import "github.com/ONSdigital/go-ns/rchttp"
 
 func main() {
     rcClient := &rchttp.Client{
-        MaxRetries:         10,              // The maximum number of retries you wish to wait for
-        ExponentialBackoff: true,            // Set to false if you do not want exponential backoff
+        MaxRetries:         10,              // The maximum number of retries you wish to wait for, the retry method implements exponential backoff
         RetryTime:          1 * time.Second, // The time between the first set of retries
 
         HTTPClient: &http.Client{            // Create your own http client with configured timeouts

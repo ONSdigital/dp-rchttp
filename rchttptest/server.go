@@ -37,13 +37,15 @@ type RequestTester struct {
 	DelayOnCall   int `json:"delay_on_call"`
 }
 
-func NewTestServer() *TestServer {
+func NewTestServer(statusCode int) *TestServer {
 	callCount := 0
 	var mu sync.Mutex
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		mu.Lock()
 		callCount++
 		mu.Unlock()
+
+		w.WriteHeader(statusCode)
 		contentType := r.Header.Get(ContentTypeHeader)
 		b := GetBody(r.Body)
 		headers := make(map[string][]string)
