@@ -190,9 +190,11 @@ func (c *Client) PostForm(ctx context.Context, uri string, data url.Values) (*ht
 	return c.Post(ctx, uri, "application/x-www-form-urlencoded", strings.NewReader(data.Encode()))
 }
 
+type Doer = func(context.Context, *http.Client, *http.Request) (*http.Response, error)
+
 func (c *Client) backoff(
 	ctx context.Context,
-	doer func(context.Context, *http.Client, *http.Request) (*http.Response, error),
+	doer Doer,
 	client *http.Client,
 	req *http.Request,
 ) (resp *http.Response, err error) {
