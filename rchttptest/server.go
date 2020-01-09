@@ -19,8 +19,10 @@ const (
 )
 
 type TestServer struct {
-	Server *httptest.Server
-	URL    string
+	Server    *httptest.Server
+	URL       string
+	CallCount int
+	Mutex     sync.Mutex
 }
 
 type Responder struct {
@@ -37,27 +39,28 @@ type RequestTester struct {
 	DelayOnCall   int `json:"delay_on_call"`
 }
 
-func NewTestServer() *TestServer {
-	callCount := 0
-	var mu sync.Mutex
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		mu.Lock()
-		callCount++
-		mu.Unlock()
+func NewTestServer(statusCode int) *TestServer {
+	ts := &TestServer{
+		CallCount: 0,
+		Mutex:     sync.Mutex{},
+	}
+
+	hts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ts.GetCalls(1)
+
+		w.WriteHeader(statusCode)
 		contentType := r.Header.Get(ContentTypeHeader)
 		b := GetBody(r.Body)
 		headers := make(map[string][]string)
 		for h, v := range r.Header {
 			headers[h] = v
 		}
-		mu.Lock()
 		jsonResponse, err := json.Marshal(Responder{
 			Method:    r.Method,
-			CallCount: callCount,
+			CallCount: ts.GetCalls(0),
 			Body:      string(b),
 			Headers:   headers,
 		})
-		mu.Unlock()
 		if err != nil {
 			convertErrorToOutput(w, contentType, err)
 			return
@@ -76,9 +79,7 @@ func NewTestServer() *TestServer {
 					convertErrorToOutput(w, contentType, err)
 					return
 				}
-				mu.Lock()
-				callCountNow := callCount
-				mu.Unlock()
+				callCountNow := ts.GetCalls(0)
 				if reqTest.DelayOnCall == callCountNow {
 					time.Sleep(delayDuration)
 				}
@@ -87,14 +88,22 @@ func NewTestServer() *TestServer {
 
 		fmt.Fprint(w, string(jsonResponse))
 	}))
-	return &TestServer{
-		Server: ts,
-		URL:    ts.URL,
-	}
+
+	ts.Server = hts
+	ts.URL = hts.URL
+
+	return ts
 }
 
 func (ts *TestServer) Close() {
 	ts.Server.Close()
+}
+
+func (ts *TestServer) GetCalls(delta int) int {
+	ts.Mutex.Lock()
+	ts.CallCount += delta
+	defer ts.Mutex.Unlock()
+	return ts.CallCount
 }
 
 func convertErrorToOutput(w io.Writer, contentType string, err error) {

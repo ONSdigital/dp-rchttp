@@ -11,7 +11,7 @@ rchttp should have a familiar feel to it when it is used - with an example given
 below:
 
 ```go
-import "github.com/ONSdigital/go-ns/rchttp"
+import rchttp "github.com/ONSdigital/dp-rchttp"
 
 func httpHandlerFunc(w http.ResponseWriter, req *http.Request) {
     client := rchttp.NewClient()
@@ -36,15 +36,17 @@ timeouts or do not wish to use exponential backoff. The following example shows
 how to configure your own rchttp client:
 
 ```go
-import "github.com/ONSdigital/go-ns/rchttp"
+import rchttp "github.com/ONSdigital/dp-rchttp"
 
 func main() {
     rcClient := &rchttp.Client{
-        MaxRetries:         10,              // The maximum number of retries you wish to wait for
-        ExponentialBackoff: true,            // Set to false if you do not want exponential backoff
-        RetryTime:          1 * time.Second, // The time between the first set of retries
-
-        HTTPClient: &http.Client{            // Create your own http client with configured timeouts
+        // MaxRetries is the maximum number of retries you wish to
+        // wait for, the retry method implements exponential backoff
+        MaxRetries:         10,
+        // RetryTime is the gap before (any) first retry (increases for second retry, and so on)
+        RetryTime:          1 * time.Second,
+        // Create your own http client with configured timeouts
+        HTTPClient: &http.Client{
             Timeout: 10 * time.Second,
             Transport: &http.Transport{
                 DialContext: (&net.Dialer{
