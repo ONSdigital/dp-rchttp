@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/url"
+	"sort"
 	"strconv"
 	"strings"
 	"testing"
@@ -358,19 +359,17 @@ func TestSetPathsWithNoRetries(t *testing.T) {
 	Convey("Successfully create map of paths when SetPathsWithNoRetries is called", t, func() {
 		client.SetPathsWithNoRetries([]string{"/health", "/healthcheck"})
 		paths := client.GetPathsWithNoRetries()
+		sort.Strings(paths) // cannot guarentee order of paths
 		So(len(paths), ShouldEqual, 2)
-		So(paths["/health"], ShouldEqual, true)
-		So(paths["/healthcheck"], ShouldEqual, true)
-		So(paths["/healthy"], ShouldEqual, false)
+		So(paths[1], ShouldEqual, "/health")
+		So(paths[0], ShouldEqual, "/healthcheck")
 	})
 
 	Convey("Successfully update client with map of paths with ClientWithListOfNonRetriablePaths", t, func() {
 		ClientWithListOfNonRetriablePaths(client, []string{"/test"})
 		paths := client.GetPathsWithNoRetries()
 		So(len(paths), ShouldEqual, 1)
-		So(paths["/test"], ShouldEqual, true)
-		So(paths["/health"], ShouldEqual, false)
-		So(paths["/healthcheck"], ShouldEqual, false)
+		So(paths[0], ShouldEqual, "/test")
 	})
 }
 

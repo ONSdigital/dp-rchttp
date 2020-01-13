@@ -51,7 +51,7 @@ type Clienter interface {
 	SetMaxRetries(int)
 	GetMaxRetries() int
 	SetPathsWithNoRetries([]string)
-	GetPathsWithNoRetries() map[string]bool
+	GetPathsWithNoRetries() []string
 
 	Get(ctx context.Context, url string) (*http.Response, error)
 	Head(ctx context.Context, url string) (*http.Response, error)
@@ -103,8 +103,11 @@ func (c *Client) SetMaxRetries(maxRetries int) {
 }
 
 // GetPathsWithNoRetries sets a list of paths that will HTTP request will not retry on error.
-func (c *Client) GetPathsWithNoRetries() map[string]bool {
-	return c.PathsWithNoRetries
+func (c *Client) GetPathsWithNoRetries() (paths []string) {
+	for path, _ := range c.PathsWithNoRetries {
+		paths = append(paths, path)
+	}
+	return paths
 }
 
 // SetPathsWithNoRetries sets a list of paths that will HTTP request will not retry on error.
