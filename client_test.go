@@ -361,8 +361,8 @@ func TestSetPathsWithNoRetries(t *testing.T) {
 		paths := client.GetPathsWithNoRetries()
 		sort.Strings(paths) // cannot guarentee order of paths
 		So(len(paths), ShouldEqual, 2)
-		So(paths[1], ShouldEqual, "/health")
-		So(paths[0], ShouldEqual, "/healthcheck")
+		So(paths[0], ShouldEqual, "/health")
+		So(paths[1], ShouldEqual, "/healthcheck")
 	})
 
 	Convey("Successfully update client with map of paths with ClientWithListOfNonRetriablePaths", t, func() {
