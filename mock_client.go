@@ -41,7 +41,7 @@ var (
 //             GetMaxRetriesFunc: func() int {
 // 	               panic("TODO: mock out the GetMaxRetries method")
 //             },
-//             GetPathsWithNoRetriesFunc: func() map[string]bool {
+//             GetPathsWithNoRetriesFunc: func() []string {
 // 	               panic("TODO: mock out the GetPathsWithNoRetries method")
 //             },
 //             HeadFunc: func(ctx context.Context, url string) (*http.Response, error) {
@@ -82,7 +82,7 @@ type ClienterMock struct {
 	GetMaxRetriesFunc func() int
 
 	// GetPathsWithNoRetriesFunc mocks the GetPathsWithNoRetries method.
-	GetPathsWithNoRetriesFunc func() map[string]bool
+	GetPathsWithNoRetriesFunc func() []string
 
 	// HeadFunc mocks the Head method.
 	HeadFunc func(ctx context.Context, url string) (*http.Response, error)
@@ -280,7 +280,7 @@ func (mock *ClienterMock) GetMaxRetriesCalls() []struct {
 }
 
 // GetPathsWithNoRetries calls GetPathsWithNoRetriesFunc.
-func (mock *ClienterMock) GetPathsWithNoRetries() map[string]bool {
+func (mock *ClienterMock) GetPathsWithNoRetries() []string {
 	if mock.GetPathsWithNoRetriesFunc == nil {
 		panic("ClienterMock.GetPathsWithNoRetriesFunc: method is nil but Clienter.GetPathsWithNoRetries was just called")
 	}
