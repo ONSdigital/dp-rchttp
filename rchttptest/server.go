@@ -31,6 +31,7 @@ type Responder struct {
 	Method    string              `json:"method"`
 	Error     string              `json:"error"`
 	Headers   map[string][]string `json:"headers"`
+	Path      string              `json:"path"`
 }
 
 type RequestTester struct {
@@ -60,6 +61,7 @@ func NewTestServer(statusCode int) *TestServer {
 			CallCount: ts.GetCalls(0),
 			Body:      string(b),
 			Headers:   headers,
+			Path:      r.URL.Path,
 		})
 		if err != nil {
 			convertErrorToOutput(w, contentType, err)

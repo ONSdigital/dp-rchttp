@@ -20,9 +20,10 @@ import (
 // Client is an extension of the net/http client with ability to add
 // timeouts, exponential backoff and context-based cancellation.
 type Client struct {
-	MaxRetries int
-	RetryTime  time.Duration
-	HTTPClient *http.Client
+	MaxRetries         int
+	RetryTime          time.Duration
+	PathsWithNoRetries map[string]bool
+	HTTPClient         *http.Client
 }
 
 // DefaultClient is a go-ns specific http client with sensible timeouts,
@@ -49,6 +50,8 @@ type Clienter interface {
 	SetTimeout(timeout time.Duration)
 	SetMaxRetries(int)
 	GetMaxRetries() int
+	SetPathsWithNoRetries([]string)
+	GetPathsWithNoRetries() map[string]bool
 
 	Get(ctx context.Context, url string) (*http.Response, error)
 	Head(ctx context.Context, url string) (*http.Response, error)
@@ -74,6 +77,16 @@ func ClientWithTimeout(c Clienter, timeout time.Duration) Clienter {
 	return c
 }
 
+// ClientWithListOfNonRetriablePaths facilitates creating a client and setting a
+// list of paths that should not be retried on failure.
+func ClientWithListOfNonRetriablePaths(c Clienter, paths []string) Clienter {
+	if c == nil {
+		c = NewClient()
+	}
+	c.SetPathsWithNoRetries(paths)
+	return c
+}
+
 // SetTimeout sets HTTP request timeout.
 func (c *Client) SetTimeout(timeout time.Duration) {
 	c.HTTPClient.Timeout = timeout
@@ -87,6 +100,20 @@ func (c *Client) GetMaxRetries() int {
 // SetMaxRetries sets HTTP request maximum number of retries.
 func (c *Client) SetMaxRetries(maxRetries int) {
 	c.MaxRetries = maxRetries
+}
+
+// GetPathsWithNoRetries sets a list of paths that will HTTP request will not retry on error.
+func (c *Client) GetPathsWithNoRetries() map[string]bool {
+	return c.PathsWithNoRetries
+}
+
+// SetPathsWithNoRetries sets a list of paths that will HTTP request will not retry on error.
+func (c *Client) SetPathsWithNoRetries(paths []string) {
+	mapPath := make(map[string]bool)
+	for _, path := range paths {
+		mapPath[path] = true
+	}
+	c.PathsWithNoRetries = mapPath
 }
 
 // Do calls ctxhttp.Do with the addition of retries with exponential backoff
@@ -125,8 +152,10 @@ func (c *Client) Do(ctx context.Context, req *http.Request) (*http.Response, err
 		return ctxhttp.Do(ctx, client, req)
 	}
 
+	path := req.URL.Path
+
 	resp, err := doer(ctx, c.HTTPClient, req)
-	if c.GetMaxRetries() > 0 && wantRetry(err, resp) {
+	if !c.PathsWithNoRetries[path] && c.GetMaxRetries() > 0 && wantRetry(err, resp) {
 		return c.backoff(ctx, doer, c.HTTPClient, req)
 	}
 
