@@ -1,5 +1,5 @@
 language: go
-script: go test ./...
+script: go test -v -count=1 -race -cover ./...
 go:
  - 1.12
  - tip
