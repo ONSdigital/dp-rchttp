@@ -234,7 +234,7 @@ func TestClientHandlesUnsuccessfulRequests(t *testing.T) {
 			})
 		})
 
-		Convey("When the server tries to make a request to a service that currently denying it's services", func() {
+		Convey("When the server tries to make a request to a service that currently denying its services", func() {
 			ts := rchttptest.NewTestServer(429)
 			defer ts.Close()
 
@@ -251,6 +251,39 @@ func TestClientHandlesUnsuccessfulRequests(t *testing.T) {
 				Convey("And the server sees one GET call", func() {
 					So(call.CallCount, ShouldEqual, 1)
 					So(call.Method, ShouldEqual, "GET")
+					So(call.Error, ShouldEqual, "")
+					So(resp.Header.Get(rchttptest.ContentTypeHeader), ShouldContainSubstring, "text/plain")
+				})
+			})
+		})
+	})
+
+	Convey("Given an rchttp client with retries", t, func() {
+		httpClient := ClientWithTimeout(nil, 5*time.Second)
+		httpClient.SetMaxRetries(1)
+
+		Convey("When the server tries to make a request to a service it is unable to"+
+			"connect to and is a path that should not handle retries", func() {
+			ts := rchttptest.NewTestServer(500)
+			defer ts.Close()
+
+			path := "/testing"
+			httpClient.SetPathsWithNoRetries([]string{path})
+
+			Convey("Then the server responds with a internal server error", func() {
+				resp, err := httpClient.Get(context.Background(), ts.URL+path)
+
+				So(resp, ShouldNotBeNil)
+				So(resp.StatusCode, ShouldEqual, 500)
+				So(err, ShouldBeNil)
+
+				call, err := unmarshallResp(resp)
+				So(err, ShouldBeNil)
+
+				Convey("And the server sees one GET call", func() {
+					So(call.CallCount, ShouldEqual, 1)
+					So(call.Method, ShouldEqual, "GET")
+					So(call.Path, ShouldEqual, path)
 					So(call.Error, ShouldEqual, "")
 					So(resp.Header.Get(rchttptest.ContentTypeHeader), ShouldContainSubstring, "text/plain")
 				})
@@ -317,6 +350,27 @@ func TestClientAppendsRequestIDHeader(t *testing.T) {
 				So(len(call.Headers[common.RequestHeaderKey][0]), ShouldBeGreaterThan, len(upstreamRequestID)*3/2)
 			})
 		})
+	})
+}
+
+func TestSetPathsWithNoRetries(t *testing.T) {
+	client := NewClient()
+	Convey("Successfully create map of paths when SetPathsWithNoRetries is called", t, func() {
+		client.SetPathsWithNoRetries([]string{"/health", "/healthcheck"})
+		paths := client.GetPathsWithNoRetries()
+		So(len(paths), ShouldEqual, 2)
+		So(paths["/health"], ShouldEqual, true)
+		So(paths["/healthcheck"], ShouldEqual, true)
+		So(paths["/healthy"], ShouldEqual, false)
+	})
+
+	Convey("Successfully update client with map of paths with ClientWithListOfNonRetriablePaths", t, func() {
+		ClientWithListOfNonRetriablePaths(client, []string{"/test"})
+		paths := client.GetPathsWithNoRetries()
+		So(len(paths), ShouldEqual, 1)
+		So(paths["/test"], ShouldEqual, true)
+		So(paths["/health"], ShouldEqual, false)
+		So(paths["/healthcheck"], ShouldEqual, false)
 	})
 }
 
