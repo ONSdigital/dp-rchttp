@@ -45,6 +45,11 @@ func main() {
         MaxRetries:         10,
         // RetryTime is the gap before (any) first retry (increases for second retry, and so on)
         RetryTime:          1 * time.Second,
+        // PathsWithNoRetries is a list of all paths that you do not wish to retry call on failure,
+        // the path should be set to true (default client has empty map)
+        PathsWithNoRetries: map[string]bool{
+			"/health": true,
+		},
         // Create your own http client with configured timeouts
         HTTPClient: &http.Client{
             Timeout: 10 * time.Second,
