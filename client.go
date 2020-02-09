@@ -12,11 +12,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ONSdigital/dp-api-clients-go/headers"
 	"github.com/ONSdigital/go-ns/common"
 	"golang.org/x/net/context"
 	"golang.org/x/net/context/ctxhttp"
 )
+
+// requestIDHeader is the header key for propagating the request ID
+//TODO: remove after adoption of opencensus/opentelemetry
+const requestIDHeader = "X-Request-Id"
 
 // Client is an extension of the net/http client with ability to add
 // timeouts, exponential backoff and context-based cancellation.
@@ -124,6 +127,7 @@ func (c *Client) SetPathsWithNoRetries(paths []string) {
 func (c *Client) Do(ctx context.Context, req *http.Request) (*http.Response, error) {
 
 	// get any existing correlation-id (might be "id1,id2"), append a new one, add to headers
+	// TODO: remove the following request ID trace logic following adoption of opencensus/opentelemetry
 	upstreamCorrelationIDs := common.GetRequestId(ctx)
 	addedIDLen := 20
 	if upstreamCorrelationIDs != "" {
@@ -134,7 +138,7 @@ func (c *Client) Do(ctx context.Context, req *http.Request) (*http.Response, err
 		}
 		upstreamCorrelationIDs += ","
 	}
-	headers.SetRequestID(req, upstreamCorrelationIDs+common.NewRequestID(addedIDLen))
+	req.Header.Set(requestIDHeader, upstreamCorrelationIDs+common.NewRequestID(addedIDLen))
 
 	doer := func(ctx context.Context, client *http.Client, req *http.Request) (*http.Response, error) {
 		if req.ContentLength > 0 {

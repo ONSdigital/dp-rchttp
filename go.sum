@@ -12,7 +12,6 @@ github.com/ONSdigital/dp-rchttp v0.0.0-20200114090501-463a529590e8/go.mod h1:821
 github.com/ONSdigital/dp-rchttp v0.0.0-20200205184530-552e4acbde03/go.mod h1:3ApQ66OQoOAExxWCOjlTwtiiAzSgqIVyoF7oRYn4YHQ=
 github.com/ONSdigital/go-ns v0.0.0-20191104121206-f144c4ec2e58 h1:XHnzoC7TxueLAfkBpblPiwaIxjngGv1VNVZhvE4jY6w=
 github.com/ONSdigital/go-ns v0.0.0-20191104121206-f144c4ec2e58/go.mod h1:iWos35il+NjbvDEqwtB736pyHru0MPFE/LqcwkV1wDc=
-github.com/ONSdigital/go-ns v0.0.0-20200205115900-a11716f93bad/go.mod h1:uHT6LaUlRbJsJRrIlN31t+QLUB80tAbk6ZR9sfoHL8Y=
 github.com/ONSdigital/go-ns v0.0.0-20200205202732-b9da725375d5/go.mod h1:2JUptWbbOXjX4ukLDIWv/lKZgh8cY290JfrG29n2sdY=
 github.com/ONSdigital/go-ns v0.0.0-20200209184623-2b53034cd170 h1:kGR4ejdglxAgz5a5S3JzvPePVATdV2TNBu6XHaD7G8c=
 github.com/ONSdigital/go-ns v0.0.0-20200209184623-2b53034cd170/go.mod h1:I8Mye07W0KDWiF09FNpFBmoZLKdTgvYjCbby/hqr+Ww=
