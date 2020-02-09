@@ -123,15 +123,6 @@ func (c *Client) SetPathsWithNoRetries(paths []string) {
 // Do calls ctxhttp.Do with the addition of retries with exponential backoff
 func (c *Client) Do(ctx context.Context, req *http.Request) (*http.Response, error) {
 
-	// TODO: Remove this once user token (Florence token) is propegated throughout apps
-	// Used for audit purposes
-	if common.IsUserPresent(ctx) {
-		// only add this header if not already set
-		if _, err := headers.GetUserIdentity(req); err != nil {
-			headers.SetUserIdentity(req, common.User(ctx))
-		}
-	}
-
 	// get any existing correlation-id (might be "id1,id2"), append a new one, add to headers
 	upstreamCorrelationIDs := common.GetRequestId(ctx)
 	addedIDLen := 20
