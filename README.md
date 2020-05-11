@@ -1,3 +1,11 @@
+### **_DEPRECATED_**
+
+**This repository is to be considered _DEPRECATED_. No code should be added to this repository**
+
+* The `rchttp` client has been moved to a new repo [dp-net/http](https://github.com/ONSdigital/dp-net).  All imports should be updated accordingly, and dependencies with this library should be removed.
+
+---
+
 # rchttp
 
 rchttp stands for robust contextual HTTP, and provides a default client
